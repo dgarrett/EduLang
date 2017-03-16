@@ -1,0 +1,43 @@
+let add : param1 param2
+{
+  return param1 + param2;
+}
+
+let flip : f x y
+{
+  return f(y, x);
+}
+
+let addOne = add(1, _);
+
+let fold : f x[]
+{
+  let running = x[0];
+  for (let i = 0; i < len(x), i++)
+  {
+    running = f(running, x[i]);
+  }
+  return running;
+}
+
+let map : f x[]
+{
+  let ret = array[len(x)];
+  for (let i = 0; i < len(x); i++)
+  {
+    ret[i] = f(x[i]);
+  }
+  return ret;
+}
+
+
+let main : args[]
+{
+  let arg1 = args[0];
+  let x = addOne(arg1);
+  print(x);
+  while (x > 0)
+  {
+    x--;
+  }
+}

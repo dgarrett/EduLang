@@ -1,0 +1,27 @@
+program = { decl };
+decl = "let", assign | func;
+assign = ident, "=", expr;
+func = ident, ":", { ident }, block;
+ident = ( letter | "_" ), ( letter | digit | "_"), { letter | digit | "_" };
+letter = ? all visibile ansi upper and lower case letters ?;
+digit = "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" ;
+natNumber = digit, {digit};
+number = natNumber, [".", natNumber];
+string = "\"", % ascii (escape codes?)%, "\"";
+literal = number | string;
+block = "{", { statement }, "}";
+statement = for | while | (expr, ";");
+#expr = ("(", (exprInternal | expr), ")");
+expr = termExpr | math;
+termExpr = literal | intoArray | call | ident | unaryOp | ("(", expr, ")");
+intoArray = ident, "[", expr, "]";
+call = ident, "(", [ expr, {",", expr} ] ")";
+math = infixOp1;
+# infixOpN where higher N = higher precedence
+infixOp2 = (termExpr, ("*" | "/" | "%"), infixOp2) | termExpr;
+infixOp1 = infixOp2, ("+" | "-"), (infixOp1 | infixOp2);
+unaryOp = prefixOp | postfixOp;
+prefixOp = (("++" | "--"), ident) | (("!" | "-"), expr);
+postfixOp = ident, ("++" | "--");
+for = "for", "(", expr, ";", expr, ";", expr, ")", block;
+while = "while", "(", expr, ")", block;
