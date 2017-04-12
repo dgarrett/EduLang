@@ -1,14 +1,3 @@
-// comment
-: let test : a b
+let test : a b
 {
-  let y = 3;
-  let z = 4.5;
-  let x = a + b;
-  let s = "hello world";
-  helloWorld(callA,paramb);
-  x = a - -b;
-  let y = x<=b;
-  return;
-}abc<
-x+++;
-"open string"
+}

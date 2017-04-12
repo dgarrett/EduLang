@@ -1,3 +1,5 @@
+#pragma once
+
 #include <experimental/string_view>
 #include <vector>
 #include <array>
@@ -59,64 +61,13 @@ enum class TokenType
   String,
 };
 
+std::string& TokenName(TokenType type);
+
 struct TTDetail
 {
   TokenType type;
   std::string str;
 };
-
-std::array<TTDetail, 4> TokenDetailsVarChar =
-{{
-  {TokenType::Let, "let"},
-  {TokenType::For, "for"},
-  {TokenType::While, "while"},
-  {TokenType::Return, "return"},
-}};
-
-std::array<TTDetail, 19> TokenDetailsOneChar =
-{{
-  {TokenType::Colon, ":"},
-  {TokenType::LCurly, "{"},
-  {TokenType::RCurly, "}"},
-  {TokenType::LParen, "("},
-  {TokenType::RParen, ")"},
-  {TokenType::Semicolon, ";"},
-  {TokenType::LSquare, "["},
-  {TokenType::RSquare, "]"},
-
-  {TokenType::Assign, "="},
-  //{TokenType::Negate, "-"}, // TODO special?
-  {TokenType::Not, "!"},
-  {TokenType::Mult, "*"},
-  {TokenType::Div, "/"},
-  {TokenType::Mod, "%"},
-  {TokenType::Add, "+"},
-  {TokenType::Sub, "-"},
-  {TokenType::Less, "<"},
-  {TokenType::Greater, ">"},
-  {TokenType::Comma, ","},
-  {TokenType::Call, "."},
-}};
-
-std::array<TTDetail, 8> TokenDetailsTwoChar =
-{{
-  {TokenType::Increment, "++"},
-  {TokenType::Decrement, "--"},
-  {TokenType::Equal, "=="},
-  {TokenType::NotEqual, "!="},
-  {TokenType::LessEq, "<="},
-  {TokenType::GreaterEq, ">="},
-  {TokenType::And, "&&"},
-  {TokenType::Or, "||"},
-}};
-
-std::array<TTDetail, 4> TokenDetailsOther =
-{{
-  {TokenType::BadToken, "BadToken"},
-  {TokenType::Ident, "Ident"},
-  {TokenType::String, "String"},
-  {TokenType::Number, "Number"},
-}};
 
 struct Token
 {
