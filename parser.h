@@ -4,8 +4,6 @@
 #include <deque>
 #include "lexer.h"
 
-typedef std::list<Token>::iterator Ti;
-
 enum NodeType
 {
     Program,
@@ -37,13 +35,13 @@ private:
     std::string ToString(int indent, Node n);
 
     Node Program();
-    Node Decl(Ti i);
-    Node Ident(Ti i);
-    Node Expr(Ti i);
-    Node Block(Ti i);
-    Node Statement(Ti i);
+    Node Decl();
+    Node Ident();
+    Node Expr();
+    Node Block();
+    Node Statement();
 
-    std::list<Token> tokens;
-    Ti end;
+    std::deque<Token> tokens;
+    std::list<Token>::iterator end;
     Node p;
 };

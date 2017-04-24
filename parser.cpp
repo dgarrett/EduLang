@@ -50,22 +50,25 @@ std::string Parser::ToString(int indent, Node n)
     return ss.str();
 }
 
-std::pair<Token, Ti> Parser::Expect(TokenType tt, Ti i)
+Token Parser::Expect(TokenType tt)
 {
     std::cout << "Expect: " << TokenName(tt) << std::endl;
-    return *Accept(tt, i);
+    return *Accept(tt);
 }
 
-std::pair<optional<Token>, Ti> Parser::Accept(TokenType tt, Ti i)
+optional<Token> Parser::Accept(TokenType tt)
 {
     std::cout << "Accept: " << TokenName(tt) << std::endl;
-    if ((*i).type == tt)
+    auto t = tokens.front();
+    if (t.type == tt)
     {
-        return std::make_pair(*i, ++i);
+        auto f = tokens.front();
+        tokens.pop_front();
+        return f;
     }
     else
     {
-        return std::make_pair(nullopt, i);
+        return nullopt;
     }
 }
 
@@ -81,10 +84,10 @@ Node Parser::Program()
     return n;
 }
 
-Node Parser::Decl(Ti i)
+Node Parser::Decl()
 {
     Node n;
-    std::tie(std::ignore, i) = Expect(TokenType::Let);
+    Expect(TokenType::Let);
     n.c.push_back(Ident());
     if (Accept(TokenType::Equal))
     {
