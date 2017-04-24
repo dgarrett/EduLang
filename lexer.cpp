@@ -3,6 +3,7 @@
 #include <iostream>
 #include <sstream>
 #include <fstream>
+#include <tuple>
 
 std::array<TTDetail, 4> TokenDetailsVarChar =
 {{
@@ -272,8 +273,15 @@ int main(int argc, char* argv[])
     std::cout << TokenName(t.type) << std::endl;
   }
 
-  Parser p(tokens);
-  Node program = p.Parse();
-  std::cout << p.ToString();
+  //Parser p(tokens);
+  //Node program = p.Parse();
+  //std::cout << p.ToString();
+  bool bo = false;
+  auto [a,b] = std::make_tuple(1,2);
+  std::cout << b <<std::endl;
+  if ((std::tie(std::ignore, bo) = std::make_tuple(false, true)), bo)
+    {
+      std::cout << "hello";
+    }
   return 0;
 }
