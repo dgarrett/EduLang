@@ -8,10 +8,19 @@ enum NodeType
 {
     Program,
     Decl,
-    Assign,
-    Func,
     Ident,
+    Expr,
     Block,
+    Statement,
+
+    OpAssign,
+    OpBool,
+    OpEq,
+    OpAdd,
+    OpMult,
+    OpUnary,
+    OpCallLookup,
+    OpEnd
 };
 
 struct Node
@@ -30,7 +39,9 @@ public:
 
 private:
     Token Expect(TokenType tt);
+    Token Expect(std::vector<TokenType> tt);
     optional<Token> Accept(TokenType tt);
+    optional<Token> Accept(std::vector<TokenType> tt);
     //void Check();
     std::string ToString(int indent, Node n);
 
@@ -40,6 +51,15 @@ private:
     Node Expr();
     Node Block();
     Node Statement();
+
+    Node OpAssign();
+    Node OpBool();
+    Node OpEq();
+    Node OpAdd();
+    Node OpMult();
+    Node OpUnary();
+    Node OpCallLookup();
+    Node OpEnd();
 
     std::deque<Token> tokens;
     std::list<Token>::iterator end;

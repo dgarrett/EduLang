@@ -2,14 +2,23 @@
 #include <sstream>
 #include "parser.h"
 
-std::array<std::string, 6> NodeTypeStrings
+std::array<std::string, 14> NodeTypeStrings
 {{
     "Program",
     "Decl",
-    "Assign",
-    "Func",
     "Ident",
+    "Expr",
     "Block",
+    "Statement",
+
+    "OpAssign",
+    "OpBool",
+    "OpEq",
+    "OpAdd",
+    "OpMult",
+    "OpUnary",
+    "OpCallLookup",
+    "OpEnd"
 }};
 
 Node Parser::Parse()
@@ -28,7 +37,7 @@ std::string Parser::ToString(int indent, Node n)
     std::stringstream ss;
     for (int i = 0; i < indent; ++i)
     {
-        ss << " ";
+        ss << "|";
     }
     ss << "NodeType: " << NodeTypeStrings[n.t];
     if (n.tok)
@@ -38,29 +47,54 @@ std::string Parser::ToString(int indent, Node n)
     ss << std::endl;
     for (auto child : n.c)
     {
-        for (int i = 0; i < indent; ++i)
-        {
-            ss << " ";
-        }
-        ss << "Child" << std::endl;
         ss << ToString(indent + 1, child);
     }
-    ss << std::endl;
 
     return ss.str();
 }
 
 Token Parser::Expect(TokenType tt)
 {
-    std::cout << "Expect: " << TokenName(tt) << std::endl;
-    return *Accept(tt);
+    std::vector<TokenType> tv;
+    tv.push_back(tt);
+    return Expect(tv);
 }
 
-optional<Token> Parser::Accept(TokenType tt)
+Token Parser::Expect(std::vector<TokenType> tt)
 {
-    std::cout << "Accept: " << TokenName(tt) << std::endl;
+    std::cout << "Expect: ";
+    for (auto i : tt)
+    {
+        std::cout << TokenName(i) << " ";
+    }
+    std::cout << std::endl;
+    auto res = Accept(tt);
+    if (!res)
+    {
+        std::cout << "Failed expect, current token: " << TokenName(tokens.front().type) << std::endl;
+        throw std::exception();
+    }
+    return *res;
+}
+
+optional <Token> Parser::Accept(TokenType tt)
+{
+    std::vector<TokenType> tv;
+    tv.push_back(tt);
+    return Accept(tv);
+}
+
+optional<Token> Parser::Accept(std::vector<TokenType> tt)
+{
+    std::cout << "Accept: ";
+    for (auto i : tt)
+    {
+        std::cout << TokenName(i) << " ";
+    }
+    std::cout << std::endl;
+
     auto t = tokens.front();
-    if (t.type == tt)
+    if (tt.end() != std::find(tt.begin(), tt.end(), t.type))
     {
         auto f = tokens.front();
         tokens.pop_front();
@@ -87,16 +121,17 @@ Node Parser::Program()
 Node Parser::Decl()
 {
     Node n;
+    n.t = NodeType::Decl;
     Expect(TokenType::Let);
     n.c.push_back(Ident());
     if (Accept(TokenType::Equal))
     {
-        n.t = NodeType::Assign;
+        //n.t = NodeType::Assign;
         n.c.push_back(Expr());
     }
     else if (Accept(TokenType::Colon))
     {
-        n.t = NodeType::Func;
+        //n.t = NodeType::Func;
         optional<Token> t;
         while((t = Accept(TokenType::Ident)))
         {
@@ -117,16 +152,9 @@ Node Parser::Decl()
 Node Parser::Ident()
 {
     Node n;
-    n.tok = Expect(TokenType::Ident);
     n.t = NodeType::Ident;
+    n.tok = Expect(TokenType::Ident);
 
-    return n;
-}
-
-Node Parser::Expr()
-{
-    Node n;
-    throw std::exception();
     return n;
 }
 
@@ -138,14 +166,14 @@ Node Parser::Block()
     optional<Node> s;
     try
     {
-        while (true)
+        while (!tokens.empty())
         {
             n.c.push_back(Statement());
         }
     }
     catch (std::exception& e)
     {
-        
+        std::cout << e.what() << std::endl;
     }
     Expect(TokenType::RCurly);
     return n;
@@ -154,6 +182,7 @@ Node Parser::Block()
 Node Parser::Statement()
 {
     Node n;
+    n.t = NodeType::Statement;
     if (Accept(TokenType::For))
     {
         
@@ -168,5 +197,119 @@ Node Parser::Statement()
     }
     n.c.push_back(Expr());
     Expect(TokenType::Semicolon);
+    return n;
+}
+
+Node Parser::Expr()
+{
+    return OpAssign();
+}
+
+Node Parser::OpAssign()
+{
+    Node n;
+    n.t = NodeType::OpAssign;
+    auto c = OpBool();
+    if (Accept(TokenType::Assign))
+    {
+        n.c.push_back(c);
+        n.c.push_back(Expr());
+        return n;
+    }
+    return c;
+}
+
+Node Parser::OpBool()
+{
+    Node n;
+    n.t = NodeType::OpBool;
+    auto c = OpEq();
+    if (Accept({TokenType::And, TokenType::Or}))
+    {
+        n.c.push_back(c);
+        n.c.push_back(OpBool());
+        return n;
+    }
+    return c;
+}
+
+Node Parser::OpEq()
+{
+    Node n;
+    n.t = NodeType::OpEq;
+    auto c = OpAdd();
+    if (Accept({TokenType::Equal, TokenType::NotEqual, TokenType::Less, TokenType::Greater, TokenType::LessEq, TokenType::GreaterEq}))
+    {
+        n.c.push_back(c);
+        n.c.push_back(OpEq());
+        return n;
+    }
+
+    return c;
+}
+
+Node Parser::OpAdd()
+{
+    Node n;
+    n.t = NodeType::OpAdd;
+    auto c = OpMult();
+    if (Accept({TokenType::Add, TokenType::Sub}))
+    {
+        n.c.push_back(c);
+        n.c.push_back(OpAdd());
+        return n;
+    }
+    return c;
+}
+
+Node Parser::OpMult()
+{
+    Node n;
+    n.t = NodeType::OpMult;
+    auto c = OpUnary();
+    if (Accept({TokenType::Mult, TokenType::Div, TokenType::Mod}))
+    {
+        n.c.push_back(c);
+        n.c.push_back(OpMult());
+        return n;
+    }
+    return c;
+}
+
+Node Parser::OpUnary()
+{
+    Node n;
+    n.t = NodeType::OpUnary;
+    auto prefix = Accept({TokenType::Sub, TokenType::Increment, TokenType::Decrement, TokenType::Not});
+    auto c = OpCallLookup();
+    auto postfix = prefix ? nullopt : Accept({TokenType::Increment, TokenType::Decrement});
+    if (prefix || postfix)
+    {
+        n.c.push_back(c);
+        return n;
+    }
+    return c;
+}
+
+Node Parser::OpCallLookup()
+{
+    Node n;
+    n.t = NodeType::OpCallLookup;
+    //n.c.push_back(OpEnd());
+    // todo
+    //return n;
+    return OpEnd();
+}
+
+Node Parser::OpEnd()
+{
+    Node n;
+    n.t = NodeType::OpEnd;
+    if (Accept(TokenType::LParen))
+    {
+        n.c.push_back(Expr());
+        Expect(TokenType::RParen);
+    }
+    auto term = Expect({TokenType::Ident, TokenType::Number, TokenType::String});
     return n;
 }
