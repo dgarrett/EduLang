@@ -42,7 +42,7 @@ std::string Parser::ToString(int indent, Node n)
     ss << "NodeType: " << NodeTypeStrings[n.t];
     if (n.tok)
     {
-        ss << " Token: " << TokenName((*n.tok).type);
+        ss << " Token: \"" << n.tok->text << "\" (" << TokenName(n.tok->type) << ")";
     }
     ss << std::endl;
     for (auto child : n.c)
