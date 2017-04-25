@@ -164,18 +164,10 @@ Node Parser::Block()
     n.t = NodeType::Block;
     Expect(TokenType::LCurly);
     optional<Node> s;
-    try
+    while (!Accept(TokenType::RCurly))
     {
-        while (!tokens.empty())
-        {
-            n.c.push_back(Statement());
-        }
+        n.c.push_back(Statement());
     }
-    catch (std::exception& e)
-    {
-        std::cout << e.what() << std::endl;
-    }
-    Expect(TokenType::RCurly);
     return n;
 }
 
@@ -295,10 +287,32 @@ Node Parser::OpCallLookup()
 {
     Node n;
     n.t = NodeType::OpCallLookup;
-    //n.c.push_back(OpEnd());
-    // todo
-    //return n;
-    return OpEnd();
+    auto c = OpEnd();
+    optional<Token> t;
+    if ((t = Accept({TokenType::LParen, TokenType::LSquare})))
+    {
+        n.c.push_back(c);
+        if ((*t).type == TokenType::LParen)
+        {
+            if (!Accept(TokenType::RParen))
+            {
+                n.c.push_back(Expr());
+                while (Accept(TokenType::Comma))
+                {
+                    n.c.push_back(Expr());
+                }
+                Expect(TokenType::RParen);
+            }
+            return n;
+        }
+        else if ((*t).type == TokenType::LSquare)
+        {
+            n.c.push_back(Expr());
+            Expect(TokenType::RSquare);
+        }
+        return n;
+    }
+    return c;
 }
 
 Node Parser::OpEnd()
@@ -309,6 +323,7 @@ Node Parser::OpEnd()
     {
         n.c.push_back(Expr());
         Expect(TokenType::RParen);
+        return n;
     }
     auto term = Expect({TokenType::Ident, TokenType::Number, TokenType::String});
     return n;
