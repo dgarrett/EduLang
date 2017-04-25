@@ -124,20 +124,18 @@ Node Parser::Decl()
     n.t = NodeType::Decl;
     Expect(TokenType::Let);
     n.c.push_back(Ident());
-    if (Accept(TokenType::Equal))
+    if ((n.tok = Accept(TokenType::Equal)))
     {
-        //n.t = NodeType::Assign;
         n.c.push_back(Expr());
     }
-    else if (Accept(TokenType::Colon))
+    else if ((n.tok = Accept(TokenType::Colon)))
     {
-        //n.t = NodeType::Func;
         optional<Token> t;
         while((t = Accept(TokenType::Ident)))
         {
             Node ident;
             ident.t = NodeType::Ident;
-            ident.tok = *t;
+            ident.tok = t;
             n.c.push_back(ident);
         }
         n.c.push_back(Block());
@@ -175,15 +173,15 @@ Node Parser::Statement()
 {
     Node n;
     n.t = NodeType::Statement;
-    if (Accept(TokenType::For))
+    if ((n.tok = Accept(TokenType::For)))
     {
         
     }
-    else if (Accept(TokenType::While))
+    else if ((n.tok = Accept(TokenType::While)))
     {
         
     }
-    else if (Accept(TokenType::Return))
+    else if ((n.tok = Accept(TokenType::Return)))
     {
         
     }
@@ -202,7 +200,7 @@ Node Parser::OpAssign()
     Node n;
     n.t = NodeType::OpAssign;
     auto c = OpBool();
-    if (Accept(TokenType::Assign))
+    if ((n.tok = Accept(TokenType::Assign)))
     {
         n.c.push_back(c);
         n.c.push_back(Expr());
@@ -216,7 +214,7 @@ Node Parser::OpBool()
     Node n;
     n.t = NodeType::OpBool;
     auto c = OpEq();
-    if (Accept({TokenType::And, TokenType::Or}))
+    if ((n.tok = Accept({TokenType::And, TokenType::Or})))
     {
         n.c.push_back(c);
         n.c.push_back(OpBool());
@@ -230,7 +228,7 @@ Node Parser::OpEq()
     Node n;
     n.t = NodeType::OpEq;
     auto c = OpAdd();
-    if (Accept({TokenType::Equal, TokenType::NotEqual, TokenType::Less, TokenType::Greater, TokenType::LessEq, TokenType::GreaterEq}))
+    if ((n.tok = Accept({TokenType::Equal, TokenType::NotEqual, TokenType::Less, TokenType::Greater, TokenType::LessEq, TokenType::GreaterEq})))
     {
         n.c.push_back(c);
         n.c.push_back(OpEq());
@@ -245,7 +243,7 @@ Node Parser::OpAdd()
     Node n;
     n.t = NodeType::OpAdd;
     auto c = OpMult();
-    if (Accept({TokenType::Add, TokenType::Sub}))
+    if ((n.tok = Accept({TokenType::Add, TokenType::Sub})))
     {
         n.c.push_back(c);
         n.c.push_back(OpAdd());
@@ -259,7 +257,7 @@ Node Parser::OpMult()
     Node n;
     n.t = NodeType::OpMult;
     auto c = OpUnary();
-    if (Accept({TokenType::Mult, TokenType::Div, TokenType::Mod}))
+    if ((n.tok = Accept({TokenType::Mult, TokenType::Div, TokenType::Mod})))
     {
         n.c.push_back(c);
         n.c.push_back(OpMult());
@@ -288,11 +286,10 @@ Node Parser::OpCallLookup()
     Node n;
     n.t = NodeType::OpCallLookup;
     auto c = OpEnd();
-    optional<Token> t;
-    if ((t = Accept({TokenType::LParen, TokenType::LSquare})))
+    if ((n.tok = Accept({TokenType::LParen, TokenType::LSquare})))
     {
         n.c.push_back(c);
-        if ((*t).type == TokenType::LParen)
+        if ((*n.tok).type == TokenType::LParen)
         {
             if (!Accept(TokenType::RParen))
             {
@@ -305,7 +302,7 @@ Node Parser::OpCallLookup()
             }
             return n;
         }
-        else if ((*t).type == TokenType::LSquare)
+        else if ((*n.tok).type == TokenType::LSquare)
         {
             n.c.push_back(Expr());
             Expect(TokenType::RSquare);
@@ -319,12 +316,12 @@ Node Parser::OpEnd()
 {
     Node n;
     n.t = NodeType::OpEnd;
-    if (Accept(TokenType::LParen))
+    if ((n.tok = Accept(TokenType::LParen)))
     {
         n.c.push_back(Expr());
         Expect(TokenType::RParen);
         return n;
     }
-    auto term = Expect({TokenType::Ident, TokenType::Number, TokenType::String});
+    n.tok = Expect({TokenType::Ident, TokenType::Number, TokenType::String});
     return n;
 }
