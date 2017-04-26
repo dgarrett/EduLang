@@ -23,6 +23,8 @@ enum NodeType
     OpEnd
 };
 
+extern std::array<std::string, 14> NodeTypeStrings;
+
 struct Node
 {
     NodeType t; // type

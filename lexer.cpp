@@ -1,5 +1,6 @@
 #include "lexer.h"
 #include "parser.h"
+#include "compiler.h"
 #include <iostream>
 #include <sstream>
 #include <fstream>
@@ -275,5 +276,9 @@ int main(int argc, char* argv[])
   Parser p(tokens);
   Node program = p.Parse();
   std::cout << p.ToString();
+
+  Compiler c(program);
+  std::vector<Instruction> instructions = c.Compile();
+  std::cout << c.ToString();
   return 0;
 }
