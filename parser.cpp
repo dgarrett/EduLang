@@ -2,7 +2,7 @@
 #include <sstream>
 #include "parser.h"
 
-std::array<std::string, 14> NodeTypeStrings
+std::array<std::string, 15> NodeTypeStrings
 {{
     "Program",
     "Decl",
@@ -16,9 +16,10 @@ std::array<std::string, 14> NodeTypeStrings
     "OpEq",
     "OpAdd",
     "OpMult",
-    "OpUnary",
+    "OpUnaryPrefix",
+    "OpUnaryPostfix",
     "OpCallLookup",
-    "OpEnd"
+    "OpEnd",
 }};
 
 Node Parser::Parse()
@@ -269,12 +270,12 @@ Node Parser::OpMult()
 Node Parser::OpUnary()
 {
     Node n;
-    n.t = NodeType::OpUnary;
     auto prefix = Accept({TokenType::Sub, TokenType::Increment, TokenType::Decrement, TokenType::Not});
     auto c = OpCallLookup();
     auto postfix = prefix ? nullopt : Accept({TokenType::Increment, TokenType::Decrement});
     if (prefix || postfix)
     {
+        n.t = prefix ? NodeType::OpUnaryPrefix : NodeType::OpUnaryPostfix;
         n.c.push_back(c);
         return n;
     }

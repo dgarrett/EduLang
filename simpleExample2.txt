@@ -1,4 +1,14 @@
 let test : a b
 {
-x = 2 + 3;
+a = 2 + 3 * 4;
+b = addFunc(1, 2);
 }
+let blah : {
+1+2;
+}
+
+let addFunc : x y
+{
+x + y; 
+}
+

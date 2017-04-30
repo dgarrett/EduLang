@@ -18,12 +18,13 @@ enum NodeType
     OpEq,
     OpAdd,
     OpMult,
-    OpUnary,
+    OpUnaryPrefix,
+    OpUnaryPostfix,
     OpCallLookup,
     OpEnd
 };
 
-extern std::array<std::string, 14> NodeTypeStrings;
+extern std::array<std::string, 15> NodeTypeStrings;
 
 struct Node
 {
