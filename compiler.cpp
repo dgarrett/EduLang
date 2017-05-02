@@ -241,3 +241,17 @@ Variable& Compiler::FindVar(const std::string& name)
     std::cout << "Variable not found in scope stack";
     throw std::exception();
 }
+
+std::pair<std::map<std::string,Function>,std::vector<uint64_t>> Compiler::Serialize()
+{
+    auto bytecode = std::vector<uint64_t>();
+    for (auto i : iv)
+    {
+        bytecode.push_back((uint64_t)i.op);
+        for (auto p : i.p)
+        {
+            bytecode.push_back((uint64_t)p);
+        }
+    }
+    return std::make_pair(functions, std::move(bytecode));
+}

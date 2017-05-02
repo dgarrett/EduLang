@@ -1,6 +1,7 @@
 #include "lexer.h"
 #include "parser.h"
 #include "compiler.h"
+#include "vm.h"
 #include <iostream>
 #include <sstream>
 #include <fstream>
@@ -280,5 +281,9 @@ int main(int argc, char* argv[])
   Compiler c(program);
   std::vector<Instruction> instructions = c.Compile();
   std::cout << c.ToString();
+  auto bytecode = c.Serialize();
+
+  vm v(bytecode.first, bytecode.second);
+  v.Run("test");
   return 0;
 }

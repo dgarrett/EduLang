@@ -1,9 +1,9 @@
-let test : a b
+let test2 : a b
 {
 a = 2 + 3 * 4;
 b = addFunc(1, 2);
 }
-let blah : {
+let test : {
 1+2;
 }
 

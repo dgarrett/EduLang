@@ -48,6 +48,7 @@ public:
     Compiler(Node program);
     std::vector<Instruction> Compile();
     std::string ToString();
+    std::pair<std::map<std::string,Function>,std::vector<uint64_t>> Serialize();
 
 private:
     void Compile(Node n);
