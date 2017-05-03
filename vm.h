@@ -4,7 +4,8 @@
 
 enum class svType : uint32_t
 {
-    num
+    num,
+    stackFrame
 };
 
 struct sv
@@ -13,6 +14,11 @@ struct sv
     union
     {
         double num;
+        struct {
+            uint32_t returnPc;
+            uint32_t returnSf;
+            uint32_t numParams;
+        } sf;
     };
 };
 
@@ -20,10 +26,13 @@ class vm
 {
 public:
     vm(std::map<std::string, Function> functions, std::vector<uint64_t> bc);
-    void Run(std::string func);
+    void Run(std::string func, const std::vector<sv>& params);
 private:
+    std::string StackToString();
+
     std::vector<uint64_t> bc;
     std::map<std::string, Function> functions;
     std::vector<sv> s;
-    int pc;
+    uint32_t pc;
+    uint32_t sf;
 };

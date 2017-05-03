@@ -3,10 +3,11 @@
 #include <experimental/optional>
 #include "compiler.h"
 
-std::array<std::string, 12> OpcodeStrings
+std::array<std::string, 14> OpcodeStrings
 {{
     "pushNum",
-    "pushVar",
+    "getVar",
+    "setVar",
     "pop",
     "add",
     "sub",
@@ -17,7 +18,27 @@ std::array<std::string, 12> OpcodeStrings
     "or",
     "eq",
     "call",
+    "return",
 }};
+
+std::array<int, 14> OpcodeParams
+{{
+    1, //pushNum,
+    1, //getVar,
+    1, //setVar
+    0, //pop,
+    0, //add,
+    0, //sub,
+    0, //mult,
+    0, //_div,
+    0, //mod,
+    0, //_and,
+    0, //_or,
+    0, //eq,
+    1, //call,
+    0, //_return
+}};
+
 
 Compiler::Compiler(Node program) : program(program)
 {}
@@ -46,18 +67,27 @@ std::string Compiler::ToString()
                 ss << "//Function: " << f.first << std::endl;
             }
         }
-        ss << OpcodeStrings[(size_t)iv[i].op];
-        for (auto p : iv[i].p)
+        ss << OpcodeStrings[(size_t)iv[i]];
+        for (int p = 1; p <= OpcodeParams[iv[i]]; ++p)
         {
-            ss << " " << p;
+            if (iv[i] == opcode::pushNum)
+            {
+                uint64_t num = iv[i+p];
+                ss << " " << *reinterpret_cast<double*>(&num);
+            }
+            else
+            {
+                ss << " " << (int64_t)iv[i+p];
+            }
         }
+        i += OpcodeParams[iv[i]];
         ss << std::endl;
     }
 
     return ss.str();
 }
 
-std::vector<Instruction> Compiler::Compile()
+std::vector<uint64_t> Compiler::Compile()
 {
     Compile(program);
     return iv;
@@ -100,16 +130,24 @@ void Compiler::Compile(Node n)
         {
             std::string name = std::string(n.c[0].tok->text);
             std::vector<std::string> params;
+            uint64_t funcAddr = iv.size();
 
             varStack.emplace_back();
             for (int i = 1; i < n.c.size() - 1; ++i)
             {
+                auto name = n.c[i].tok->text.to_string();
                 params.emplace_back(n.c[i].tok->text);
-                varStack[varStack.size() - 1].emplace_back(std::string(n.c[i].tok->text), -i);
+                varStack.back().emplace_back(name, -i - 1);
+                varOffsets[name] = -i - 1;
             }
-            functions[name] = { iv.size(), params };
+            currVarOffset = 0;
+            FindVarDecls(n);
+            functions[name] = { funcAddr, params };
             Compile(n.c[n.c.size() - 1]);
+            iv.push_back(opcode::_return);
             varStack.pop_back();
+            varOffsets.clear();
+            currVarOffset = 0;
         }
     }
     break;
@@ -124,8 +162,25 @@ void Compiler::Compile(Node n)
         break;
     case Statement:
     {
-        Compile(n.c);
-        iv.emplace_back(opcode::pop);
+        if (n.tok && n.tok->type == TokenType::Let)
+        {
+            auto name = n.c[0].tok->text.to_string();
+            varStack.back().emplace_back(name, varOffsets[name]);
+            Compile(n.c[1]);
+            iv.insert(iv.end(), {opcode::setVar, (uint64_t)varOffsets[name]});
+        }
+        else
+        {
+            Compile(n.c);
+            if (n.tok && n.tok->type == TokenType::Return)
+            {
+                iv.push_back(opcode::_return);
+            }
+            else
+            {
+                iv.push_back(opcode::pop);
+            }
+        }
     }
     break;
 
@@ -134,6 +189,7 @@ void Compiler::Compile(Node n)
         auto v = FindVar(n.c[0].tok->text.to_string());
         auto copyC = std::vector<Node>(n.c.begin() + 1, n.c.end());
         Compile(copyC);
+        iv.insert(iv.end(), {opcode::setVar, (uint64_t)varOffsets[v.name]});
     }
     break;
     // Binary ops
@@ -146,28 +202,28 @@ void Compiler::Compile(Node n)
         switch(n.tok->type)
         {
         case TokenType::And:
-            iv.emplace_back(opcode::_and);
+            iv.push_back(opcode::_and);
             break;
         case TokenType::Or:
-            iv.emplace_back(opcode::_or);
+            iv.push_back(opcode::_or);
             break;
         case TokenType::Equal:
-            iv.emplace_back(opcode::eq);
+            iv.push_back(opcode::eq);
             break;
         case TokenType::Add:
-            iv.emplace_back(opcode::add);
+            iv.push_back(opcode::add);
             break;
         case TokenType::Sub:
-            iv.emplace_back(opcode::sub);
+            iv.push_back(opcode::sub);
             break;
         case TokenType::Mult:
-            iv.emplace_back(opcode::mult);
+            iv.push_back(opcode::mult);
             break;
         case TokenType::Div:
-            iv.emplace_back(opcode::div);
+            iv.push_back(opcode::_div);
             break;
         case TokenType::Mod:
-            iv.emplace_back(opcode::mod);
+            iv.push_back(opcode::mod);
             break;
         default:
             throw std::exception();
@@ -189,7 +245,7 @@ void Compiler::Compile(Node n)
         std::cout << "Calling " << n.c[0].tok->text << std::endl;
         auto copyC = std::vector<Node>(n.c.rbegin(), n.c.rend() - 1);
         Compile(copyC);
-        iv.emplace_back(opcode::call, std::initializer_list<int64_t>{(int64_t)std::distance(functions.begin(), fi)});
+        iv.insert(iv.end(), {opcode::call, (uint64_t)std::distance(functions.begin(), fi)});
     }
     break;
     case OpEnd:
@@ -203,15 +259,14 @@ void Compiler::Compile(Node n)
         break;
         case TokenType::Number:
         {
-            Instruction i(opcode::pushNum);
-            i.p.push_back(atoi(std::string(n.tok->text).c_str()));
-            iv.push_back(i);
+            double num = atof(std::string(n.tok->text).c_str());
+            iv.insert(iv.end(), {opcode::pushNum, *reinterpret_cast<uint64_t*>(&num)});
         }
         break;
         case TokenType::Ident:
         {
             auto v = FindVar(n.tok->text.to_string());
-            iv.emplace_back(opcode::pushVar, std::initializer_list<int64_t>{(int64_t)v.offset});
+            iv.insert(iv.end(), {opcode::getVar, (uint64_t)v.offset});
         }
         break;
         default:
@@ -244,7 +299,7 @@ Variable& Compiler::FindVar(const std::string& name)
 
 std::pair<std::map<std::string,Function>,std::vector<uint64_t>> Compiler::Serialize()
 {
-    auto bytecode = std::vector<uint64_t>();
+    /*auto bytecode = std::vector<uint64_t>();
     for (auto i : iv)
     {
         bytecode.push_back((uint64_t)i.op);
@@ -252,6 +307,21 @@ std::pair<std::map<std::string,Function>,std::vector<uint64_t>> Compiler::Serial
         {
             bytecode.push_back((uint64_t)p);
         }
+    }*/
+    return std::make_pair(functions, iv);
+}
+
+void Compiler::FindVarDecls(const Node& n)
+{
+    if (n.tok && n.tok->type == TokenType::Let)
+    {
+        iv.push_back(opcode::pushNum);
+        iv.push_back(0);
+        varOffsets[n.tok->text.to_string()] = currVarOffset;
+        currVarOffset++;
     }
-    return std::make_pair(functions, std::move(bytecode));
+    for (auto c : n.c)
+    {
+        FindVarDecls(c);
+    }
 }

@@ -1,4 +1,6 @@
 #include <iostream>
+#include <sstream>
+#include <iterator>
 #include "vm.h"
 
 
@@ -6,22 +8,65 @@ vm::vm(std::map<std::string, Function> functions, std::vector<uint64_t> bc)
     : functions(functions), bc(bc)
 {}
 
-void vm::Run(std::string func)
+std::string vm::StackToString()
 {
+    std::stringstream ss;
+    ss << "Stack (size: " << s.size() << ") bottom: ";
+    for (auto v : s)
+    {
+        switch (v.type)
+        {
+        case svType::num:
+            ss << " (num)[" << v.num << "]";
+            break;
+        case svType::stackFrame:
+            ss << " (stackFrame)[pc:" << v.sf.returnPc << ",sf:" << v.sf.returnSf << "]";
+            break;
+        default:
+            ss << " (unknown type " << (int)v.type << ")";
+        }
+    }
+    return ss.str();
+}
+
+void vm::Run(std::string func, const std::vector<sv>& params)
+{
+    std::cout << "=======Running " << func << std::endl;
     auto f = functions.at(func);
+    bool halt = false;
+    if (f.params.size() != params.size()) throw std::exception();
     pc = f.addr;
-    while (pc < bc.size())
+    sf = 1 + params.size();
+    s.insert(s.end(), params.begin(), params.end());
+    s.push_back({.type = svType::stackFrame, .sf = {(uint32_t)-1, (uint32_t)-1, (uint32_t)f.params.size()}});
+    while (pc < bc.size() && !halt)
     {
         opcode op = (opcode)bc[pc];
-        std::cout << "pc: " << pc << " op: " << (int)op << std::endl;
+        std::cout << StackToString() << std::endl;
+        std::cout << "pc: " << pc << " op: " << OpcodeStrings[op] << std::endl;
+        pc += 1 + OpcodeParams[op];
         switch(op)
         {
         case opcode::pushNum:
         {
-            double num = (double)bc[pc + 1];
-            s.push_back({svType::num, num});
-            pc++;
+            uint64_t num = bc[pc - 1];
+            sv val = {.type = svType::num, .num = *reinterpret_cast<double*>(&num)};
+            s.push_back(val);
         }
+        break;
+        case opcode::getVar:
+        {
+            uint64_t num = bc[pc - 1];
+            s.push_back(s[sf + *reinterpret_cast<int64_t*>(&num)]);
+        }
+        break;
+        case opcode::setVar:
+        {
+            uint64_t num = bc[pc - 1];
+            s[sf + num] = s.back();
+            s.pop_back();
+        }
+        break;
         case opcode::pop:
         {
             s.pop_back();
@@ -36,9 +81,76 @@ void vm::Run(std::string func)
             s.back() = {svType::num, a.num + b.num};
         }
         break;
+        case opcode::sub:
+        {
+            auto b = s.back();
+            s.pop_back();
+            auto& a = s.back();
+            if (a.type != svType::num || b.type != svType::num) throw std::exception();
+            s.back() = {svType::num, a.num - b.num};
+        }
+        break;
+        case opcode::mult:
+        {
+            auto b = s.back();
+            s.pop_back();
+            auto& a = s.back();
+            if (a.type != svType::num || b.type != svType::num) throw std::exception();
+            s.back() = {svType::num, a.num * b.num};
+        }
+        break;
+        case opcode::_div:
+        {
+            auto b = s.back();
+            s.pop_back();
+            auto& a = s.back();
+            if (a.type != svType::num || b.type != svType::num) throw std::exception();
+            s.back() = {svType::num, a.num / b.num};
+        }
+        break;
+        case opcode::call:
+        {
+            sv val = {.type = svType::stackFrame, .sf = {pc, sf}};
+            s.push_back(val);
+            auto f = functions.begin();
+            std::advance(f, bc[pc - 1]);
+            pc = f->second.addr;
+            sf = s.size();
+        }
+        break;
+        case opcode::_return:
+        {
+            auto r = s.back();
+            while (s.size() > sf)
+            {
+                s.pop_back();
+            }
+            auto currentSf = s.back();
+            s.pop_back(); // stack frame
+            // todo pop params
+            for (int i = 0; i < currentSf.sf.numParams; ++i)
+            {
+                s.pop_back();
+            }
+            s.push_back(r);
+            if (currentSf.sf.returnSf == (uint32_t)-1)
+            {
+                halt = true;
+            }
+            else
+            {
+                pc = currentSf.sf.returnPc;
+                sf = currentSf.sf.returnSf;
+            }
+        }
+        break;
         default:
             throw std::exception();
         }
-        pc++;
+        if (halt)
+        {
+            std::cout << StackToString() << std::endl;
+            std::cout << "pc: " << pc << " op: " << OpcodeStrings[op] << std::endl;
+        }
     }
 }

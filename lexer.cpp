@@ -279,11 +279,12 @@ int main(int argc, char* argv[])
   std::cout << p.ToString();
 
   Compiler c(program);
-  std::vector<Instruction> instructions = c.Compile();
+  std::vector<uint64_t> instructions = c.Compile();
   std::cout << c.ToString();
   auto bytecode = c.Serialize();
 
   vm v(bytecode.first, bytecode.second);
-  v.Run("test");
+  //v.Run("test", {{.type = svType::num, .num = 5}});
+  v.Run("avg", {{.type = svType::num, .num = 5}, {.type = svType::num, .num = 3}, {.type = svType::num, .num = 2}});
   return 0;
 }

@@ -184,7 +184,15 @@ Node Parser::Statement()
     }
     else if ((n.tok = Accept(TokenType::Return)))
     {
-        
+    }
+    else if ((n.tok = Accept(TokenType::Let)))
+    {
+        n.c.push_back(Ident());
+        Expect(TokenType::Assign);
+    }
+    else
+    {
+        n.tok = nullopt;
     }
     n.c.push_back(Expr());
     Expect(TokenType::Semicolon);
