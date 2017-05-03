@@ -20,7 +20,7 @@ std::string vm::StackToString()
             ss << " (num)[" << v.num << "]";
             break;
         case svType::stackFrame:
-            ss << " (stackFrame)[pc:" << v.sf.returnPc << ",sf:" << v.sf.returnSf << "]";
+            ss << " (stackFrame)[pc:" << v.sf.returnPc << ",sf:" << v.sf.returnSf << ",numParams:" << v.sf.numParams << "]";
             break;
         default:
             ss << " (unknown type " << (int)v.type << ")";
@@ -110,10 +110,10 @@ void vm::Run(std::string func, const std::vector<sv>& params)
         break;
         case opcode::call:
         {
-            sv val = {.type = svType::stackFrame, .sf = {pc, sf}};
-            s.push_back(val);
             auto f = functions.begin();
             std::advance(f, bc[pc - 1]);
+            sv val = {.type = svType::stackFrame, .sf = {pc, sf, (uint32_t)f->second.params.size()}};
+            s.push_back(val);
             pc = f->second.addr;
             sf = s.size();
         }
