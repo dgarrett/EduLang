@@ -5,6 +5,7 @@
 enum class svType : uint32_t
 {
     num,
+    _bool,
     stackFrame
 };
 
@@ -14,6 +15,7 @@ struct sv
     union
     {
         double num;
+        bool b;
         struct {
             uint32_t returnPc;
             uint32_t returnSf;
@@ -26,7 +28,7 @@ class vm
 {
 public:
     vm(std::map<std::string, Function> functions, std::vector<uint64_t> bc);
-    void Run(std::string func, const std::vector<sv>& params);
+    sv Run(std::string func, const std::vector<sv>& params);
 private:
     std::string StackToString();
 

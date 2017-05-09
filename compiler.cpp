@@ -3,7 +3,7 @@
 #include <experimental/optional>
 #include "compiler.h"
 
-std::array<std::string, 14> OpcodeStrings
+std::array<std::string, 17> OpcodeStrings
 {{
     "pushNum",
     "getVar",
@@ -19,9 +19,12 @@ std::array<std::string, 14> OpcodeStrings
     "eq",
     "call",
     "return",
+    "jf",
+    "jt",
+    "jmp",
 }};
 
-std::array<int, 14> OpcodeParams
+std::array<int, 17> OpcodeParams
 {{
     1, //pushNum,
     1, //getVar,
@@ -37,6 +40,9 @@ std::array<int, 14> OpcodeParams
     0, //eq,
     1, //call,
     0, //_return
+    1, // jf
+    1, // jt
+    1, // jmp
 }};
 
 
@@ -168,6 +174,25 @@ void Compiler::Compile(Node n)
             varStack.back().emplace_back(name, varOffsets[name]);
             Compile(n.c[1]);
             iv.insert(iv.end(), {opcode::setVar, (uint64_t)varOffsets[name]});
+        }
+        else if (n.tok && n.tok->type == TokenType::If)
+        {
+            Compile(n.c[0]);
+            iv.push_back(opcode::jf);
+            iv.push_back(0);
+            auto jParamIndex = iv.size() - 1;
+            Compile(n.c[1]);
+            auto jParam = iv.size();
+            if (n.c.size() >= 3)
+            {
+                iv.push_back(opcode::jmp);
+                iv.push_back(0);
+                jParam = iv.size();
+                auto elseParamIndex = iv.size() - 1;
+                Compile(n.c[2]);
+                iv[elseParamIndex] = iv.size();
+            }
+            iv[jParamIndex] = jParam;
         }
         else
         {

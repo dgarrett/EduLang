@@ -99,6 +99,7 @@ optional<Token> Parser::Accept(std::vector<TokenType> tt)
     {
         auto f = tokens.front();
         tokens.pop_front();
+        std::cout << "-Accepted: " << f.text << std::endl;
         return f;
     }
     else
@@ -189,6 +190,18 @@ Node Parser::Statement()
     {
         n.c.push_back(Ident());
         Expect(TokenType::Assign);
+    }
+    else if ((n.tok = Accept(TokenType::If)))
+    {
+        Expect(TokenType::LParen);
+        n.c.push_back(Expr());
+        Expect(TokenType::RParen);
+        n.c.push_back(Block());
+        if (Accept(TokenType::Else))
+        {
+            n.c.push_back(Block());
+        }
+        return n;
     }
     else
     {

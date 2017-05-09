@@ -19,10 +19,13 @@ enum opcode : uint32_t
     eq,
     call,
     _return,
+    jf,
+    jt,
+    jmp,
 };
 
-extern std::array<std::string, 14> OpcodeStrings;
-extern std::array<int, 14> OpcodeParams;
+extern std::array<std::string, 17> OpcodeStrings;
+extern std::array<int, 17> OpcodeParams;
 
 struct Instruction
 {

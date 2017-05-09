@@ -20,6 +20,10 @@ return x / y;
 
 let avg : a b c
 {
+if (1 == 1)
+{
+2;
+}
 return divFunc((addFunc(a, b) + c), 3);
 }
 

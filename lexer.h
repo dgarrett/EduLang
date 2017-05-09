@@ -17,6 +17,7 @@ enum class TokenType
   While,
   Return,
   If,
+  Else,
   True,
   False,
   Underscore,

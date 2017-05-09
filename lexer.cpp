@@ -6,12 +6,14 @@
 #include <sstream>
 #include <fstream>
 
-std::array<TTDetail, 4> TokenDetailsVarChar =
+std::array<TTDetail, 6> TokenDetailsVarChar =
 {{
   {TokenType::Let, "let"},
   {TokenType::For, "for"},
   {TokenType::While, "while"},
   {TokenType::Return, "return"},
+  {TokenType::If, "if"},
+  {TokenType::Else, "else"},
 }};
 
 std::array<TTDetail, 19> TokenDetailsOneChar =
@@ -285,6 +287,7 @@ int main(int argc, char* argv[])
 
   vm v(bytecode.first, bytecode.second);
   //v.Run("test", {{.type = svType::num, .num = 5}});
-  v.Run("avg", {{.type = svType::num, .num = 5}, {.type = svType::num, .num = 3}, {.type = svType::num, .num = 2}});
+  sv res = v.Run("avg", {{.type = svType::num, .num = 5}, {.type = svType::num, .num = 3}, {.type = svType::num, .num = 2}});
+  std::cout << "Result: " << res.num << std::endl;
   return 0;
 }

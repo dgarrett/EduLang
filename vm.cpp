@@ -19,6 +19,9 @@ std::string vm::StackToString()
         case svType::num:
             ss << " (num)[" << v.num << "]";
             break;
+        case svType::_bool:
+            ss << " (bool)[" << (v.b ? "true" : "false") << "]";
+            break;
         case svType::stackFrame:
             ss << " (stackFrame)[pc:" << v.sf.returnPc << ",sf:" << v.sf.returnSf << ",numParams:" << v.sf.numParams << "]";
             break;
@@ -29,7 +32,7 @@ std::string vm::StackToString()
     return ss.str();
 }
 
-void vm::Run(std::string func, const std::vector<sv>& params)
+sv vm::Run(std::string func, const std::vector<sv>& params)
 {
     std::cout << "=======Running " << func << std::endl;
     auto f = functions.at(func);
@@ -108,6 +111,15 @@ void vm::Run(std::string func, const std::vector<sv>& params)
             s.back() = {svType::num, a.num / b.num};
         }
         break;
+        case opcode::eq:
+        {
+            auto b = s.back();
+            s.pop_back();
+            auto& a = s.back();
+            if (a.type != svType::num || b.type != svType::num) throw std::exception();
+            s.back() = {.type = svType::_bool, .b = a.num == b.num};
+        }
+        break;
         case opcode::call:
         {
             auto f = functions.begin();
@@ -144,6 +156,33 @@ void vm::Run(std::string func, const std::vector<sv>& params)
             }
         }
         break;
+        case opcode::jf:
+        {
+            auto a = s.back();
+            s.pop_back();
+            if (a.type != svType::_bool) throw std::exception();
+            if (!a.b)
+            {
+                pc = bc[pc - 1];
+            }
+        }
+        break;
+        case opcode::jt:
+        {
+            auto a = s.back();
+            s.pop_back();
+            if (a.type != svType::_bool) throw std::exception();
+            if (a.b)
+            {
+                pc = bc[pc - 1];
+            }
+        }
+        break;
+        case opcode::jmp:
+        {
+            pc = bc[pc - 1];
+        }
+        break;
         default:
             throw std::exception();
         }
@@ -153,4 +192,6 @@ void vm::Run(std::string func, const std::vector<sv>& params)
             std::cout << "pc: " << pc << " op: " << OpcodeStrings[op] << std::endl;
         }
     }
+
+    return s.back();
 }
