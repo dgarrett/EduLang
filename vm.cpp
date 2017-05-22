@@ -4,9 +4,14 @@
 #include "vm.h"
 
 
-vm::vm(std::map<std::string, Function> functions, std::vector<uint64_t> bc)
+vm::vm(std::map<std::string, Function> functions, std::vector<std::string> stringTable, std::vector<uint64_t> bc)
     : functions(functions), bc(bc)
-{}
+{
+    for (auto s : stringTable)
+    {
+        strTable.push_back(new hv({1, hvType::string, (new std::string(s))}));
+    }
+}
 
 std::string vm::StackToString()
 {
@@ -25,6 +30,16 @@ std::string vm::StackToString()
         case svType::stackFrame:
             ss << " (stackFrame)[pc:" << v.sf.returnPc << ",sf:" << v.sf.returnSf << ",numParams:" << v.sf.numParams << "]";
             break;
+        case svType::hv:
+        {
+            switch (v.heapVal->type)
+            {
+            case hvType::string:
+                ss << " (string)[" << *v.heapVal->str << "]";
+                break;
+            }
+        }
+        break;
         default:
             ss << " (unknown type " << (int)v.type << ")";
         }
@@ -55,6 +70,12 @@ sv vm::Run(std::string func, const std::vector<sv>& params)
             uint64_t num = bc[pc - 1];
             sv val = {.type = svType::num, .num = *reinterpret_cast<double*>(&num)};
             s.push_back(val);
+        }
+        break;
+        case opcode::pushStr:
+        {
+            uint64_t index = bc[pc - 1];
+            s.push_back({.type = svType::hv, .heapVal = strTable.at(index)});
         }
         break;
         case opcode::getVar:
@@ -109,6 +130,33 @@ sv vm::Run(std::string func, const std::vector<sv>& params)
             auto& a = s.back();
             if (a.type != svType::num || b.type != svType::num) throw std::exception();
             s.back() = {svType::num, a.num / b.num};
+        }
+        break;
+        case opcode::mod:
+        {
+            auto b = s.back();
+            s.pop_back();
+            auto& a = s.back();
+            if (a.type != svType::num || b.type != svType::num) throw std::exception();
+            s.back() = {svType::num, (double)((int)a.num % (int)b.num)};
+        }
+        break;
+        case opcode::_and:
+        {
+            auto b = s.back();
+            s.pop_back();
+            auto& a = s.back();
+            if (a.type != svType::_bool || b.type != svType::_bool) throw std::exception();
+            s.back() = {.type = svType::_bool, .b = a.b && b.b};
+        }
+        break;
+        case opcode::_or:
+        {
+            auto b = s.back();
+            s.pop_back();
+            auto& a = s.back();
+            if (a.type != svType::_bool || b.type != svType::_bool) throw std::exception();
+            s.back() = {.type = svType::_bool, .b = a.b || b.b};
         }
         break;
         case opcode::eq:

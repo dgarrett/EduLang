@@ -6,6 +6,7 @@
 enum opcode : uint32_t
 {
     pushNum,
+    pushStr,
     getVar,
     setVar,
     pop,
@@ -24,8 +25,8 @@ enum opcode : uint32_t
     jmp,
 };
 
-extern std::array<std::string, 17> OpcodeStrings;
-extern std::array<int, 17> OpcodeParams;
+extern std::array<std::string, 18> OpcodeStrings;
+extern std::array<int, 18> OpcodeParams;
 
 struct Instruction
 {
@@ -56,7 +57,7 @@ public:
     Compiler(Node program);
     std::vector<uint64_t> Compile();
     std::string ToString();
-    std::pair<std::map<std::string,Function>,std::vector<uint64_t>> Serialize();
+    std::tuple<std::map<std::string,Function>,std::vector<std::string>,std::vector<uint64_t>> Serialize();
 
 private:
     void Compile(Node n);
@@ -70,4 +71,5 @@ private:
     std::vector<std::vector<Variable>> varStack;
     std::map<std::string, int> varOffsets;
     int currVarOffset;
+    std::vector<std::string> strTable;
 };

@@ -1,5 +1,6 @@
 let avg : a b c
 {
+  let x = "test";
   if (a == 0)
   {
     return 0;

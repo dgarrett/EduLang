@@ -3,9 +3,10 @@
 #include <experimental/optional>
 #include "compiler.h"
 
-std::array<std::string, 17> OpcodeStrings
+std::array<std::string, 18> OpcodeStrings
 {{
     "pushNum",
+    "pushStr",
     "getVar",
     "setVar",
     "pop",
@@ -24,9 +25,10 @@ std::array<std::string, 17> OpcodeStrings
     "jmp",
 }};
 
-std::array<int, 17> OpcodeParams
+std::array<int, 18> OpcodeParams
 {{
     1, //pushNum,
+    1, //pushStr,
     1, //getVar,
     1, //setVar
     0, //pop,
@@ -62,6 +64,11 @@ std::string Compiler::ToString()
             ss << " " << p;
         }
         ss << std::endl;
+    }
+    ss << "==== Strings" << std::endl;
+    for (auto s : strTable)
+    {
+        ss << s << std::endl;
     }
     ss << "====" << std::endl;
     for (int i = 0; i < iv.size(); ++i)
@@ -294,6 +301,12 @@ void Compiler::Compile(Node n)
             iv.insert(iv.end(), {opcode::getVar, (uint64_t)v.offset});
         }
         break;
+        case TokenType::String:
+        {
+            strTable.emplace_back(n.tok->text);
+            iv.insert(iv.end(), {opcode::pushStr, strTable.size() - 1});
+        }
+        break;
         default:
             throw std::exception();
         }
@@ -322,7 +335,7 @@ Variable& Compiler::FindVar(const std::string& name)
     throw std::exception();
 }
 
-std::pair<std::map<std::string,Function>,std::vector<uint64_t>> Compiler::Serialize()
+std::tuple<std::map<std::string,Function>,std::vector<std::string>,std::vector<uint64_t>> Compiler::Serialize()
 {
     /*auto bytecode = std::vector<uint64_t>();
     for (auto i : iv)
@@ -333,7 +346,7 @@ std::pair<std::map<std::string,Function>,std::vector<uint64_t>> Compiler::Serial
             bytecode.push_back((uint64_t)p);
         }
     }*/
-    return std::make_pair(functions, iv);
+    return std::make_tuple(functions, strTable, iv);
 }
 
 void Compiler::FindVarDecls(const Node& n)

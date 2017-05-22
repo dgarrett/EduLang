@@ -285,7 +285,7 @@ int main(int argc, char* argv[])
   std::cout << c.ToString();
   auto bytecode = c.Serialize();
 
-  vm v(bytecode.first, bytecode.second);
+  vm v(std::get<0>(bytecode), std::get<1>(bytecode), std::get<2>(bytecode));
   //v.Run("test", {{.type = svType::num, .num = 5}});
   sv res = v.Run("avg", {{.type = svType::num, .num = 5}, {.type = svType::num, .num = 3}, {.type = svType::num, .num = 2}});
   std::cout << "Result: " << res.num << std::endl;
