@@ -56,7 +56,7 @@ std::string Compiler::ToString()
     std::stringstream ss;
     ss << "====" << std::endl;
     ss << "Functions: " << std::endl;
-    for (auto f : functions)
+    for (auto& f : functions)
     {
         ss << f.first << " addr: " << f.second.addr << " params:";
         for (auto p : f.second.params)
@@ -73,7 +73,7 @@ std::string Compiler::ToString()
     ss << "====" << std::endl;
     for (int i = 0; i < iv.size(); ++i)
     {
-        for (auto f : functions)
+        for (auto& f : functions)
         {
             if (f.second.addr == i)
             {
@@ -155,7 +155,7 @@ void Compiler::Compile(Node n)
             }
             currVarOffset = 0;
             FindVarDecls(n);
-            functions[name] = { funcAddr, params };
+            functions[name] = { funcAddr, params, false };
             Compile(n.c[n.c.size() - 1]);
             iv.push_back(opcode::_return);
             varStack.pop_back();

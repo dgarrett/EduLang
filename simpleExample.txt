@@ -1,6 +1,11 @@
+let print :
+{
+}
+
 let avg : a b c
 {
   let x = "test";
+  print(x);
   if (a == 0)
   {
     return 0;

@@ -45,10 +45,14 @@ struct Variable
     int64_t offset;
 };
 
+struct sv;
+
 struct Function
 {
     uint64_t addr;
     std::vector<std::string> params;
+    bool isNative;
+    std::function<sv(std::vector<sv>&)> nativeFunc;
 };
 
 class Compiler

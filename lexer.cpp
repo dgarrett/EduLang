@@ -263,6 +263,13 @@ Lexer::Lexer(std::string fileContents)
   std::cout << "Tokenizing:" << std::endl << fileContents;
 }
 
+sv vmPrint(std::vector<sv>& stack)
+{
+    auto& param = stack[stack.size() - 2];
+    std::cout << "****vmPrint: " << *param.heapVal->str << std::endl;
+    return 0.f;
+}
+
 int main(int argc, char* argv[])
 {
   std::ifstream file(argv[1]);
@@ -287,7 +294,8 @@ int main(int argc, char* argv[])
 
   vm v(std::get<0>(bytecode), std::get<1>(bytecode), std::get<2>(bytecode));
   //v.Run("test", {{.type = svType::num, .num = 5}});
-  sv res = v.Run("avg", {{.type = svType::num, .num = 5}, {.type = svType::num, .num = 3}, {.type = svType::num, .num = 2}});
+  v.Register("print", &vmPrint);
+  sv res = v.Run("avg", {sv(5.f), sv(3.f), sv(2.f)});
   std::cout << "Result: " << res.num << std::endl;
   return 0;
 }

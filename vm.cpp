@@ -17,7 +17,7 @@ std::string vm::StackToString()
 {
     std::stringstream ss;
     ss << "Stack (size: " << s.size() << ") bottom: ";
-    for (auto v : s)
+    for (auto& v : s)
     {
         switch (v.type)
         {
@@ -35,7 +35,7 @@ std::string vm::StackToString()
             switch (v.heapVal->type)
             {
             case hvType::string:
-                ss << " (string)[" << *v.heapVal->str << "]";
+                ss << " (string," << v.heapVal->refCount << ")[" << *v.heapVal->str << "]";
                 break;
             }
         }
@@ -56,7 +56,7 @@ sv vm::Run(std::string func, const std::vector<sv>& params)
     pc = f.addr;
     sf = 1 + params.size();
     s.insert(s.end(), params.begin(), params.end());
-    s.push_back({.type = svType::stackFrame, .sf = {(uint32_t)-1, (uint32_t)-1, (uint32_t)f.params.size()}});
+    s.emplace_back((struct sf){(uint32_t)-1, (uint32_t)-1, (uint32_t)f.params.size()});
     while (pc < bc.size() && !halt)
     {
         opcode op = (opcode)bc[pc];
@@ -68,14 +68,13 @@ sv vm::Run(std::string func, const std::vector<sv>& params)
         case opcode::pushNum:
         {
             uint64_t num = bc[pc - 1];
-            sv val = {.type = svType::num, .num = *reinterpret_cast<double*>(&num)};
-            s.push_back(val);
+            s.emplace_back(*reinterpret_cast<double*>(&num));
         }
         break;
         case opcode::pushStr:
         {
             uint64_t index = bc[pc - 1];
-            s.push_back({.type = svType::hv, .heapVal = strTable.at(index)});
+            s.emplace_back(strTable.at(index));
         }
         break;
         case opcode::getVar:
@@ -102,7 +101,7 @@ sv vm::Run(std::string func, const std::vector<sv>& params)
             s.pop_back();
             auto& a = s.back();
             if (a.type != svType::num || b.type != svType::num) throw std::exception();
-            s.back() = {svType::num, a.num + b.num};
+            s.back() = a.num + b.num;
         }
         break;
         case opcode::sub:
@@ -111,7 +110,7 @@ sv vm::Run(std::string func, const std::vector<sv>& params)
             s.pop_back();
             auto& a = s.back();
             if (a.type != svType::num || b.type != svType::num) throw std::exception();
-            s.back() = {svType::num, a.num - b.num};
+            s.back() = a.num - b.num;
         }
         break;
         case opcode::mult:
@@ -120,7 +119,7 @@ sv vm::Run(std::string func, const std::vector<sv>& params)
             s.pop_back();
             auto& a = s.back();
             if (a.type != svType::num || b.type != svType::num) throw std::exception();
-            s.back() = {svType::num, a.num * b.num};
+            s.back() = a.num * b.num;
         }
         break;
         case opcode::_div:
@@ -129,7 +128,7 @@ sv vm::Run(std::string func, const std::vector<sv>& params)
             s.pop_back();
             auto& a = s.back();
             if (a.type != svType::num || b.type != svType::num) throw std::exception();
-            s.back() = {svType::num, a.num / b.num};
+            s.back() = a.num / b.num;
         }
         break;
         case opcode::mod:
@@ -138,7 +137,7 @@ sv vm::Run(std::string func, const std::vector<sv>& params)
             s.pop_back();
             auto& a = s.back();
             if (a.type != svType::num || b.type != svType::num) throw std::exception();
-            s.back() = {svType::num, (double)((int)a.num % (int)b.num)};
+            s.back() = (double)((int)a.num % (int)b.num);
         }
         break;
         case opcode::_and:
@@ -147,7 +146,7 @@ sv vm::Run(std::string func, const std::vector<sv>& params)
             s.pop_back();
             auto& a = s.back();
             if (a.type != svType::_bool || b.type != svType::_bool) throw std::exception();
-            s.back() = {.type = svType::_bool, .b = a.b && b.b};
+            s.back() = a.b && b.b;
         }
         break;
         case opcode::_or:
@@ -156,7 +155,7 @@ sv vm::Run(std::string func, const std::vector<sv>& params)
             s.pop_back();
             auto& a = s.back();
             if (a.type != svType::_bool || b.type != svType::_bool) throw std::exception();
-            s.back() = {.type = svType::_bool, .b = a.b || b.b};
+            s.back() = a.b || b.b;
         }
         break;
         case opcode::eq:
@@ -165,19 +164,29 @@ sv vm::Run(std::string func, const std::vector<sv>& params)
             s.pop_back();
             auto& a = s.back();
             if (a.type != svType::num || b.type != svType::num) throw std::exception();
-            s.back() = {.type = svType::_bool, .b = a.num == b.num};
+            s.back() = a.num == b.num;
         }
         break;
         case opcode::call:
         {
             auto f = functions.begin();
             std::advance(f, bc[pc - 1]);
-            sv val = {.type = svType::stackFrame, .sf = {pc, sf, (uint32_t)f->second.params.size()}};
-            s.push_back(val);
-            pc = f->second.addr;
-            sf = s.size();
+            if ((*f).second.isNative)
+            {
+                s.emplace_back((struct sf){pc, sf, 0 /*params*/});
+                sf = s.size();
+                s.push_back((*f).second.nativeFunc(s));
+                // don't break, fall through to _return
+            }
+            else
+            {
+                s.emplace_back((struct sf){pc, sf, (uint32_t)f->second.params.size()});
+                pc = f->second.addr;
+                sf = s.size();
+                break;
+            }
         }
-        break;
+        //break;
         case opcode::_return:
         {
             auto r = s.back();
@@ -187,7 +196,7 @@ sv vm::Run(std::string func, const std::vector<sv>& params)
             }
             auto currentSf = s.back();
             s.pop_back(); // stack frame
-            // todo pop params
+            // pop params
             for (int i = 0; i < currentSf.sf.numParams; ++i)
             {
                 s.pop_back();
@@ -242,4 +251,15 @@ sv vm::Run(std::string func, const std::vector<sv>& params)
     }
 
     return s.back();
+}
+
+void vm::Register(std::string name, std::function<sv(std::vector<sv>&)> func)
+{
+    auto fi = functions.find(name);
+    if (fi == functions.end())
+    {
+        throw std::exception();
+    }
+    (*fi).second.isNative = true;
+    (*fi).second.nativeFunc = func;
 }
